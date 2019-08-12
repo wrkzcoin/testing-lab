@@ -17,3 +17,13 @@ KEY `hash` (`hash`)
 
 ```
 #### Sorry, no guide yet :)
+
+At least some tips:
+```
+export MYSQL_HOST_DEGO=localhost
+export MYSQL_PORT_DEGO=3306
+export MYSQL_USERNAME_DEGO=blockchain_user
+export MYSQL_PASSWORD_DEGO=blockchain_password
+export MYSQL_DATABASE_DEGO=blockchain_db
+export DEGO_DAEMON_RPC=http://daemon-IP:daemon-rpc-PORT
+```
