@@ -1,5 +1,5 @@
 #### daemon-dego-redis-cache.py
-* Working in progress. Inspired by https://turtlecoin.github.io/wallet-api-docs/
+* Working in progress. Inspired by https://docs.turtlepay.io/blockapi/
 * Rely on blockchain-data-collection-agent: https://github.com/TurtlePay/blockchain-data-collection-agent
 * Currently testing with one new table, and read from redis.
 * SQL:
