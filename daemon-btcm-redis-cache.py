@@ -21,7 +21,7 @@ import pymysql.cursors
 
 redis_pool = None
 redis_conn = None
-COIN = "DEGO"
+COIN = "BTCM"
 
 def init():
     global redis_pool
@@ -30,20 +30,20 @@ def init():
 
 pymysqlpool.logger.setLevel('DEBUG')
 myconfig = {
-    'host': os.getenv('MYSQL_HOST_DEGO', 'default_host'),
-    'user': os.getenv('MYSQL_USERNAME_DEGO', 'default_user'),
-    'password': os.getenv('MYSQL_PASSWORD_DEGO', 'default_password'),
-    'database': os.getenv('MYSQL_DATABASE_DEGO', 'default_db'),
+    'host': os.getenv('MYSQL_HOST_BTCM', 'default_host'),
+    'user': os.getenv('MYSQL_USERNAME_BTCM', 'default_user'),
+    'password': os.getenv('MYSQL_PASSWORD_BTCM', 'default_password'),
+    'database': os.getenv('MYSQL_DATABASE_BTCM', 'default_db'),
     'cursorclass': pymysql.cursors.DictCursor,
     'autocommit':True
     }
 
 connPool = pymysqlpool.ConnectionPool(size=5, name='connPool', **myconfig)
 conn = connPool.get_connection(timeout=5, retry_num=2)
-fee = 2500000
-fee_address = "dg4nUdJyHV1ZCrYV7kHvTE9HkKT9ynKCW1Antm1ku8ihhsN1PkiH2fFfwsGt2y7UsN3rALr4gg8oz87vpxjaVF8g1uUWKH7pE"
-decimal = 100
-daemon_rpc = os.getenv('DEGO_DAEMON_RPC', 'http://localhost:6969'),
+fee = 250000
+fee_address = "btcmzTHkHtyhMoh8rjKgfvD13yFhs4eMmVBbuRcBMBZLdK67HCFbc4LegfEggApq8R2JJo8198vc4SwRjytTEbFZVvz6AyEUkuP"
+decimal = 10000
+daemon_rpc = os.getenv('BTCM_DAEMON_RPC', 'http://localhost:11358'),
 
 def openConnection():
     global conn, connPool
@@ -839,7 +839,6 @@ async def handle_getwalletsyncdata_post(request):
                         if result:
                             topHeight = result['height']
                             topHash = result['hash']
-                    # THIS ONE DEGO ONLY
                     response_obj = {
                         'items': blockList,
                         'status': 'OK'
@@ -1064,8 +1063,8 @@ async def post_getwalletsyncdata(blockHashesResult):
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
         key = item['height'] # block hash
-        if redis_conn.exists(f'DEGOBLOCK:{key}'):
-            blockList.append(json.loads(zlib.decompress(redis_conn.get(f'DEGOBLOCK:{key}')).decode()))
+        if redis_conn.exists(f'BTCMBLOCK:{key}'):
+            blockList.append(json.loads(zlib.decompress(redis_conn.get(f'BTCMBLOCK:{key}')).decode()))
         else:
             hashes.append("'"+item['hash']+"'")
             blockHashes[item['hash']] = item['hash']
@@ -1178,7 +1177,7 @@ async def post_getwalletsyncdata(blockHashesResult):
                 'transactions': block_list[key] if key in block_list else []
             }
             if redis_conn:
-                if redis_conn.exists(f'DEGOBLOCK:{heights[key]}') == False:
+                if redis_conn.exists(f'BTCMBLOCK:{heights[key]}') == False:
                     try:
                         if key in block_list:
                             numTx = len(coinBaseList[key]) + len(block_list[key])
@@ -1190,7 +1189,7 @@ async def post_getwalletsyncdata(blockHashesResult):
                         cur.execute(sql, (key, heights[key], timestamps[key], numTx, json.dumps(each_block).replace(" ", "")))
                         conn.commit()
                         # add to redis
-                        redis_conn.set(f'DEGOBLOCK:{heights[key]}', zlib.compress(json.dumps(each_block).replace(" ", "").encode(), 9))
+                        redis_conn.set(f'BTCMBLOCK:{heights[key]}', zlib.compress(json.dumps(each_block).replace(" ", "").encode(), 9))
                     except Exception as e:
                         traceback.print_exc(file=sys.stdout)
             blockList.append(each_block)
@@ -1219,4 +1218,4 @@ routes = [
 
 app.add_routes(routes)
 
-web.run_app(app, host='127.0.0.1', port=8081)
+web.run_app(app, host='127.0.0.1', port=8082)
