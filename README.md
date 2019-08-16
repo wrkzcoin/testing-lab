@@ -35,7 +35,7 @@ completed compression zlib 50000 steps. Took 102s
 new size from zlib: 24652 bytes.
 zstd level 9 compress for 50000 times.
 completed compression zstd 50000 steps. Took 60s
-new size from zlib: 23283 bytes.
+new size from zstd: 23283 bytes.
 zlib decompress for 50000 times.
 completed decompress zlib 50000 steps. Took 13s
 zstd decompress for 50000 times.
