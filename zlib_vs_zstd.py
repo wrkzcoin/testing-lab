@@ -47,7 +47,7 @@ for i in range(steps):
     compressedString_zstd = zstd.compress(originalString.encode(), 9)
 end = int(time.time())
 print('completed compression zstd {} steps. Took {}s'.format(steps, end-start))
-print('new size from zlib: {} bytes.'.format(sys.getsizeof(compressedString_zstd)))
+print('new size from zstd: {} bytes.'.format(sys.getsizeof(compressedString_zstd)))
 
 # zlib decompress
 start = int(time.time())
