@@ -4,7 +4,7 @@ import sys, traceback
 import aiohttp
 import asyncio
 import time
-import zlib
+import zstd
 # For some environment variables
 import os
 
@@ -1048,7 +1048,7 @@ async def get_wallet_data(height: int, blockCount: int):
 
 
 async def post_getwalletsyncdata(blockHashesResult):
-    global conn, redis_pool, redis_conn
+    global conn, redis_pool, redis_conn, COIN
     blockList = []
     hashes = []
     blockHashes = {}
@@ -1063,13 +1063,23 @@ async def post_getwalletsyncdata(blockHashesResult):
             except Exception as e:
                 traceback.print_exc(file=sys.stdout)
         key = item['height'] # block hash
-        if redis_conn.exists(f'BTCMBLOCK:{key}'):
-            blockList.append(json.loads(zlib.decompress(redis_conn.get(f'BTCMBLOCK:{key}')).decode()))
+        if redis_conn.exists(f'{COIN}BLOCK:{key}'):
+            blockList.append(json.loads(zstd.decompress(redis_conn.get(f'{COIN}BLOCK:{key}')).decode()))
         else:
-            hashes.append("'"+item['hash']+"'")
-            blockHashes[item['hash']] = item['hash']
-            heights[item['hash']] = item['height']
-            timestamps[item['hash']] = item['timestamp']
+            # if exist in MariaDB, let's insert to redis
+            checkBlock = None
+            try:
+                checkBlock = await get_block_cache_table_by('height', key)
+            except Exception as e:
+                traceback.print_exc(file=sys.stdout)
+            if checkBlock:
+                # add to redis
+                redis_conn.set(f'{COIN}BLOCK:{key}', zstd.compress(checkBlock['blockinfo'].encode(), 9))
+            else:
+                hashes.append("'"+item['hash']+"'")
+                blockHashes[item['hash']] = item['hash']
+                heights[item['hash']] = item['height']
+                timestamps[item['hash']] = item['timestamp']
 
     if len(list(blockHashes.keys())) == 0:
         return blockList
@@ -1177,7 +1187,7 @@ async def post_getwalletsyncdata(blockHashesResult):
                 'transactions': block_list[key] if key in block_list else []
             }
             if redis_conn:
-                if redis_conn.exists(f'BTCMBLOCK:{heights[key]}') == False:
+                if redis_conn.exists(f'{COIN}BLOCK:{heights[key]}') == False:
                     try:
                         if key in block_list:
                             numTx = len(coinBaseList[key]) + len(block_list[key])
@@ -1189,13 +1199,28 @@ async def post_getwalletsyncdata(blockHashesResult):
                         cur.execute(sql, (key, heights[key], timestamps[key], numTx, json.dumps(each_block).replace(" ", "")))
                         conn.commit()
                         # add to redis
-                        redis_conn.set(f'BTCMBLOCK:{heights[key]}', zlib.compress(json.dumps(each_block).replace(" ", "").encode(), 9))
+                        redis_conn.set(f'{COIN}BLOCK:{heights[key]}', zstd.compress(json.dumps(each_block).replace(" ", "").encode(), 9))
                     except Exception as e:
                         traceback.print_exc(file=sys.stdout)
             blockList.append(each_block)
         end = time.time()
         print('Operation after Query to issue blockList in post_get_data: {}s'.format(end-start))
         return blockList
+
+
+async def get_block_cache_table_by(field: str, value: str):
+    global conn
+    if field not in ["hash", "height", "timestamp"]:
+        return None
+    try:
+        openConnection()
+        with conn.cursor() as cur:
+            sql = """ SELECT * FROM `cache_blocks` WHERE """+field+""" = %s LIMIT 1 """
+            cur.execute(sql, (value))
+            result = cur.fetchone()
+            return result
+    except Exception as e:
+        traceback.print_exc(file=sys.stdout)
 
 
 app = web.Application()
